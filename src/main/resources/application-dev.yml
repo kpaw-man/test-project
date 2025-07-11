@@ -1,0 +1,33 @@
+kafka:
+  bootstrap-servers: kafka:19092
+  tls:
+    enabled: false
+
+rocrate:
+  validation:
+    severity: REQUIRED
+    location: http://localhost:8000
+
+pbi:
+  identifier-prefix: ro-id-dev
+  rohub:
+    api:
+      endpoint: https://dariah-hub-dev.apps.dcw1.paas.psnc.pl/api/
+#     endpoint: https://dariah-kpo-pbi-dev.apps.dcw1.paas.psnc.pl/api/
+
+  kafka:
+    input-topic: "records-to-pbi-upload"
+
+logging:
+  level:
+    pl.psnc.pbirecordsuploader: DEBUG
+
+
+storage-manager:
+  base-url: http://localhost:8282/api/
+
+semantic-analyzer-api:
+  url: http://localhost:8002/
+
+semantic-analyzer-researchareas-api:
+  url: http://localhost:8003/

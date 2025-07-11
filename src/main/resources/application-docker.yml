@@ -1,0 +1,86 @@
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  tls:
+    enabled: ${KAFKA_TLS_ENABLED}
+
+spring:
+  data:
+    redis:
+      host: ${PBI_UPLOADER_EXTERNAL_CACHE_HOST}
+      port: ${PBI_UPLOADER_EXTERNAL_CACHE_PORT}
+      timeout: ${PBI_UPLOADER_EXTERNAL_CACHE_TIMEOUT}
+  kafka:
+    ssl:
+      trust-store-location: ${TRUST_STORE_LOCATION}
+      trust-store-password: ${TRUST_STORE_PASSWORD}
+      key-store-location: ${KEY_STORES_LOCATION}/${spring.application.name}.keystore.jks
+      key-store-password: ${KEY_STORE_PASSWORD}
+
+rocrate:
+  validation:
+    severity: ${ROCRATE_VALIDATOR_SEVERITY}
+    location: ${ROCRATE_VALIDATOR_API_LOCATION}
+
+cache:
+  external:
+    ttl-hours: ${PBI_UPLOADER_EXTERNAL_CACHE_TTL_HOURS}
+
+pbi:
+  identifier-prefix: ${PBI_IDENTIFIER_PREFIX}
+  rohub:
+    api:
+      endpoint: ${PBI_API_LOCATION}
+  kafka:
+    input-topic: ${PBI_KAFKA_TOPICS}
+    dlt:
+      enabled: ${PBI_KAFKA_DLT_ENABLED}
+
+logging:
+  level:
+    pl.psnc.pbirecordsuploader: ${PBI_UPLOADER_LOG_LEVEL}
+    org.springframework.web: ${PBI_UPLOADER_WEB_LOG_LEVEL}
+    reactor.netty.http.client: ${PBI_UPLOADER_WEB_LOG_LEVEL}
+    org.springframework.kafka: ${PBI_UPLOADER_KAFKA_LOG_LEVEL}
+    org.apache.kafka: ${PBI_UPLOADER_KAFKA_LOG_LEVEL}
+    org.apache.kafka.clients.producer.ProducerConfig: ${PBI_UPLOADER_KAFKA_LOG_LEVEL}
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}
+  realm: ${KEYCLOAK_REALM}
+  client: ${KEYCLOAK_CLIENT}
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET}
+
+semantic-analyzer-api:
+  url: ${SEMANTIC_ANALYZER_API_URL}
+  timeout: ${SEMANTIC_ANALYZER_API_CONN_TIMEOUT}
+  max-retries: ${SEMANTIC_ANALYZER_API_MAX_RETIRES}
+  cache:
+    max-size: ${SEMANTIC_ANALYZER_API_CACHE_MAX_SIZE}
+    expire-after-write-minutes: ${SEMANTIC_ANALYZER_API_CACHE_EXPIRE}
+
+semantic-analyzer-researchareas-api:
+  url: ${SEMANTIC_ANALYZER_RESEARCHAREAS_API_URL}
+  timeout: ${SEMANTIC_ANALYZER_RESEARCHAREAS_API_CONN_TIMEOUT}
+
+BN-descriptor-api:
+  url: ${BN_DESCRIPTOR_API_URL}
+  descriptor-details-uri: ${BN_DESCRIPTOR_API_DESCRIPTOR_DETAILS_URI}
+  timeout: ${BN_DESCRIPTOR_API_CONN_TIMEOUT}
+  max-retries: ${BN_DESCRIPTOR_API_MAX_RETRIES}
+  model: ${BN_DESCRIPTOR_API_LLM_MODEL}
+  suggest-endpoint: ${BN_DESCRIPTOR_API_SUGGEST_ENDPOINT}
+  result-limit: ${BN_DESCRIPTOR_API_RESULT_LIMIT}
+  cache:
+    max-size: ${BN_DESCRIPTOR_API_CACHE_MAX_SIZE}
+    expire-after-write-minutes: ${BN_DESCRIPTOR_API_CACHE_EXPIRE}
+  validator:
+    url: ${BN_DESCRIPTOR_API_VALIDATOR_URL}
+
+keywords:
+  mappings:
+    dctype:
+      file-path: ${KEYWORDS_MAPPINGS_DC_TYPE_FILE_PATH}
+
+storage-manager:
+  base-url: ${STORAGE_MANAGER_API_LOCATION}

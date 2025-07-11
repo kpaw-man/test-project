@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPattern": "/api/records\\?daceId=1c86e65b8d64f9a791bb&schemaId=dace"
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "mock-records-response.json",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

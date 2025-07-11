@@ -1,0 +1,104 @@
+kafka:
+  bootstrap-servers: kafka:9093
+  tls:
+    enabled: true
+
+pbi:
+  kafka:
+    dlt:
+      enabled: true
+      topic-suffix: "-dlt"
+      backoff-interval-ms: 2000
+      backoff-max-attempts: 3
+
+logging:
+  level:
+    pl.psnc.pbirecordsuploader: INFO
+    org.springframework.web: INFO
+    reactor.netty.http.client: INFO
+    org.springframework.kafka: INFO
+    org.apache.kafka: INFO
+    org.apache.kafka.clients.producer.ProducerConfig: WARN
+
+xslt:
+  filepath: "xslt/pbi-rohub.xsl"
+
+keycloak:
+  auth-server-url: https://keycloak-dev.psnc.pl
+  realm: pbi-dev
+  client: pbi-records-uploader
+  credentials:
+    secret: BN92fFnRiOaAtpmJTuboIgG8I5uOYUtv
+
+cache:
+  internal:
+    max-size: 2000
+    expire-after-write-minute: 180
+  external:
+    ttl-hours: 720 #30 days
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+  application:
+    name: pbi-records-uploader
+  kafka:
+    ssl:
+      key-store-location: file:etc/keystores/pbi-records-uploader.jks
+      key-store-password: QGnXa8Di1eFdPq8CAnBVBub96JPs9CbG
+      trust-store-location: file:etc/keystores/truststore.jks
+      trust-store-password: QGnXa8Di1eFdPq8CAnBVBub96JPs9CbG
+
+semantic-analyzer-api:
+  url: https://semantic-analyzer-api-dariah-hub-dev.apps.dcw1.paas.psnc.pl
+  timeout: 5000
+  max-retries: 2
+  cache:
+    max-size: 10000
+    expire-after-write-minutes: 10080 #week
+
+semantic-analyzer-researchareas-api:
+  url: https://semantic-analyzer-researchareas-api-dariah-hub-dev.apps.dcw1.paas.psnc.pl
+  timeout: 5000
+  max-retries: 2
+  cache:
+    max-size: 10000
+    expire-after-write-minutes: 10080 #week
+
+BN-descriptor-api:
+  url: https://deskryptor.bn.org.pl/api/projects/
+  descriptor-details-uri: https://dbn.bn.org.pl/descriptor-details/
+  timeout: 5000
+  max-retries: 2
+  model: nn-ensemble-pl-lem
+  suggest-endpoint: /suggest
+  result-limit: 10
+  cache:
+    max-size: 10000
+    expire-after-write-minutes: 10080 # week
+  validator:
+    url: https://dbn.bn.org.pl/khw/
+
+
+keywords:
+  mappings:
+    dctype:
+      classpath: keywords/dctype-keywords-mapping.json
+      file-path:
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+
+server:
+  port: 8080

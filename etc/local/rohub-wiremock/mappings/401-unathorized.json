@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/ros/upload/",
+    "headers": {
+      "Authorization": {
+        "matches": "^(?!Bearer 1234).*"
+      }
+    }
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "Content-Type": "application/json",
+      "WWW-Authenticate": "Bearer realm=\"rohub\""
+    },
+    "body": "{\"error\": \"Unauthorized\", \"message\": \"Bearer token is missing or invalid\"}"
+  }
+}

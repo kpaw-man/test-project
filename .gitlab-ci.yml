@@ -1,0 +1,136 @@
+stages:
+  - test
+  - build
+  - upload
+
+unit-tests:
+  image: maven:3.8.6-eclipse-temurin-17
+  stage: test
+  script:
+    - mvn clean test
+  artifacts:
+    paths:
+      - target/surefire-reports
+    when: always
+
+build-latest:
+  image: maven:3.8.6-eclipse-temurin-17
+  services:
+    - docker:20.10.16-dind
+  stage: build
+  only:
+    - main
+    - devops
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+  before_script:
+    - apt-get update && apt-get install -y docker.io
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - mvn spring-boot:build-image -Pdocker -DskipTests -Dspring-boot.build-image.imageName=$IMAGE_TAG
+    - docker tag pl.psnc/pbi-records-uploader:0.0.1-SNAPSHOT $IMAGE_TAG
+    - docker push $IMAGE_TAG
+
+
+build-nightly:
+  image: maven:3.8.6-eclipse-temurin-17
+  services:
+    - docker:20.10.16-dind
+  stage: build
+  except:
+    - main
+    - devops
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    RELEASE_IMAGE_TAG: $CI_REGISTRY_IMAGE:nightly
+  before_script:
+    - apt-get update && apt-get install -y docker.io
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - mvn spring-boot:build-image -Pdocker -Dspring-boot.build-image.imageName=$IMAGE_TAG
+    - docker tag pl.psnc/pbi-records-uploader:0.0.1-SNAPSHOT $IMAGE_TAG
+    - docker push $IMAGE_TAG
+    - docker tag $IMAGE_TAG $RELEASE_IMAGE_TAG
+    - docker push $RELEASE_IMAGE_TAG
+
+upload_pbi_dev:
+  image:
+    name: gcr.io/go-containerregistry/crane:debug
+    entrypoint: [ "" ]
+  stage: upload
+  needs:
+    - build-latest
+  only:
+    - main
+    - devops
+  variables:
+    GIT_STRATEGY: none
+    SOURCE_IMAGE: $CI_REGISTRY_IMAGE:latest
+    TARGET_IMAGE: registry.apps.dcw1.paas.psnc.pl/dariah-hub-dev/pbi-records-uploader:latest
+  script:
+    - crane auth login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+    - crane auth login registry.apps.dcw1.paas.psnc.pl -u gitlab -p $DARIAH_HUB_DEV_TOKEN
+    - crane cp $SOURCE_IMAGE $TARGET_IMAGE
+
+deploy_pbi_dev_dariah-hub-dev:
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  stage: upload
+  needs:
+    - build-latest
+  only:
+    - develop
+    - devops
+  variables:
+    GIT_STRATEGY: none
+    REGISTRY: registry.apps.dcw1.paas.psnc.pl
+    TARGET: registry.apps.dcw1.paas.psnc.pl/dariah-hub-dev/pbi-records-uploader:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u gitlab -p $DARIAH_HUB_DEV_TOKEN registry.apps.dcw1.paas.psnc.pl
+    - docker pull $CI_REGISTRY_IMAGE:latest
+    - docker tag $CI_REGISTRY_IMAGE:latest $TARGET
+    - docker push $TARGET
+
+test_pbi_dev_dariah-hub-test:
+  image: docker:20.10.16
+  services:
+    - name: docker:20.10.16-dind
+  stage: upload
+  needs:
+    - build-latest
+  only:
+    - test
+    - devops
+  variables:
+    GIT_STRATEGY: none
+    REGISTRY: registry.apps.dcw1.paas.psnc.pl
+    TARGET: registry.apps.dcw1.paas.psnc.pl/dariah-hub-test/pbi-records-uploader:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u gitlab -p $DARIAH_HUB_TEST_TOKEN registry.apps.dcw1.paas.psnc.pl
+    - docker pull $CI_REGISTRY_IMAGE:latest
+    - docker tag $CI_REGISTRY_IMAGE:latest $TARGET
+    - docker push $TARGET
+
+prod_pbi_dev_dariah-hub-prod:
+  image: docker:20.10.16
+  services:
+    - name: docker:20.10.16-dind
+  stage: upload
+  needs:
+    - build-latest
+  only:
+    - prod
+    - devops
+  variables:
+    GIT_STRATEGY: none
+    REGISTRY: registry.apps.dcw1.paas.psnc.pl
+    TARGET: registry.apps.dcw1.paas.psnc.pl/dariah-hub-prod/pbi-records-uploader:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u gitlab -p $DARIAH_HUB_PROD_TOKEN registry.apps.dcw1.paas.psnc.pl
+    - docker pull $CI_REGISTRY_IMAGE:latest
+    - docker tag $CI_REGISTRY_IMAGE:latest $TARGET
+    - docker push $TARGET

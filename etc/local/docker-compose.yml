@@ -1,0 +1,178 @@
+version: '3.8'
+networks:
+  pbi_uploader:
+    external: true
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    networks:
+      - pbi_uploader
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    networks:
+      - pbi_uploader
+    depends_on:
+      - redis
+    profiles:
+      - tools  # Only start with: docker-compose --profile tools up
+
+  storage-manager-mock-server:
+    image: wiremock/wiremock:latest
+    ports:
+      - "8282:8080"
+    env_file:
+      - dev.env
+    volumes:
+      - ./sm-wiremock:/home/wiremock
+    command: --verbose
+    networks:
+      - pbi_uploader
+
+  rohub-mock-server:
+    image: wiremock/wiremock:latest
+    ports:
+      - "8283:8080"
+    env_file:
+      - dev.env
+    volumes:
+      - ./rohub-wiremock:/home/wiremock
+    command: --verbose
+    networks:
+      - pbi_uploader
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.1.1
+    ports:
+      - "12181:12181"
+    tmpfs: "/datalog"
+    env_file:
+      - dev.env
+    networks:
+      - pbi_uploader
+
+  kafka:
+    image: gitlab.pcss.pl:5005/dl-team/aggregation/dace-deployment/kafka-dace:latest
+    ports:
+      - "19092:19092"
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+    env_file:
+      - dev.env
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,SSL://kafka:9093
+      KAFKA_SSL_KEY_CREDENTIALS: cert_creds
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: cert_creds
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: cert_creds
+    volumes:
+      - ../keystores/kafka.keystore.jks:/etc/kafka/secrets/keystore.jks
+      - ../keystores/truststore.jks:/etc/kafka/secrets/truststore.jks
+      - ../keystores/cert_creds:/etc/kafka/secrets/cert_creds
+    networks:
+      - pbi_uploader
+
+  kafka-create-topics:
+    image: gitlab.pcss.pl:5005/dl-team/aggregation/dace-deployment/kafka-dace:latest
+    depends_on:
+      - zookeeper
+      - kafka
+    command: [ "--create-topics" ]
+    env_file:
+      - dev.env
+    environment:
+      KAFKA_BROKER_ID: ignored
+      KAFKA_BROKERS: kafka:19092
+    networks:
+      - pbi_uploader
+
+  kouncil:
+    image: consdata/kouncil:1.4
+    ports:
+      - "8888:8080"
+    env_file:
+      - dev.env
+    environment:
+      bootstrapServers: kafka:19092
+      KAFKA_BROKERS: kafka:19092
+    networks:
+      - pbi_uploader
+
+  ro-validator:
+    image: gitlab.pcss.pl:5005/dl-team/dariahhub/pbi/rocrate-validator-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONPATH: /app/src
+    networks:
+      - pbi_uploader
+
+#  pbi-records-uploader:
+#    image: gitlab.pcss.pl:5005/dl-team/dariahhub/pbi/pbi-records-uploader:latest
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=docker
+#    env_file:
+#      - dev.env
+#    depends_on:
+#      - kafka
+#      - kafka-create-topics
+#    networks:
+#      - pbi_uploader
+
+  semantic-analyzer:
+    image: gitlab.pcss.pl:5005/dl-team/dariahhub/pbi/language-transformers/semantic-textual-similarity:latest
+    ports:
+      - "8002:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODEL_NAME=sdadas/st-polish-paraphrase-from-distilroberta
+      - KEYWORDS_FILE=/app/data/keywords.json
+      - CACHE_SIZE=1000
+      - CACHE_TTL=3600
+    volumes:
+      - ./semantic-analyzer/data:/app/data
+    networks:
+      - pbi_uploader
+
+  semantic-analyzer-reseachareas:
+    image: gitlab.pcss.pl:5005/dl-team/dariahhub/pbi/language-transformers/semantic-textual-similarity:latest
+    ports:
+      - "8003:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODEL_NAME=sdadas/st-polish-paraphrase-from-distilroberta
+      - KEYWORDS_FILE=/app/data/keywords.json
+      - CACHE_SIZE=1000
+      - CACHE_TTL=3600
+    volumes:
+      - ./semantic-analyzer/data-researchareas:/app/data
+    networks:
+      - pbi_uploader
+
+volumes:
+  redis_data:
+    driver: local
+  zookeeper-data:
+  zookeeper-datalog:
+  kafka:

@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/ros/upload/",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bearer 1234"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"message\": \"Upload successful\"}"
+  }
+}
